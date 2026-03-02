@@ -1,0 +1,17 @@
+services:
+  caddy:
+    build:
+      dockerfile: Dockerfile
+      context: ./
+    container_name: caddy
+    restart: unless-stopped
+    volumes:
+      - ./caddy/config:/etc/caddy:Z
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+    name: caddy_data
+  caddy_config:
+    name: caddy_config
