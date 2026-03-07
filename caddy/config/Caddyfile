@@ -14,7 +14,7 @@ tv.{$DOMAIN_NAME} {
     }
 
     log {
-        output file /etc/caddy/logs/tv.log {
+        output file /logs/tv.log {
 			roll_size 10MiB
 		}
         format console
