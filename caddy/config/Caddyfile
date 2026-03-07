@@ -1,25 +1,23 @@
 {
     log {
-        output file /etc/caddy/logs/latest.log
+        output file /logs/latest.log {
+            roll_size 10MiB
+        }
         format console
-        level DEBUG
+        level INFO
     }
 }
 
-yourspotify.visard.me {
-        reverse_proxy 10.13.13.2:8080 {
-        header_up X-Target-Service yourspotify
-        transport http {
-            # might be unnecessary
-            versions 1.1
-        }
+tv.{$DOMAIN_NAME} {
+    reverse_proxy 10.13.13.2:8080 {
+        header_up X-Target-Service tv
     }
-    tls {
-        dns ovh {
-            endpoint ovh-ca
-            application_key {env.OVH_APPLICATION_KEY}
-            application_secret {env.OVH_APPLICATION_SECRET}
-            consumer_key {env.OVH_CONSUMER_KEY}
-        }
+
+    log {
+        output file /etc/caddy/logs/tv.log {
+			roll_size 10MiB
+		}
+        format console
+        level DEBUG
     }
 }

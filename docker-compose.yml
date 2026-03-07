@@ -30,8 +30,13 @@ services:
       context: ./
     container_name: caddy
     restart: unless-stopped
+    env_file:
+      - ./caddy/.env
+      # Required fields in './caddy/.env':
+      # DOMAIN_NAME = The domain name used for this VPS.
     volumes:
       - ./caddy/config:/etc/caddy:Z
+      - ./caddy/logs:/logs:Z
       - caddy_data:/data
       - caddy_config:/config
     network_mode: "service:wireguard"
