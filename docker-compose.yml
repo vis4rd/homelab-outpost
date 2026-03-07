@@ -41,6 +41,27 @@ services:
       - caddy_config:/config
     network_mode: "service:wireguard"
 
+  hawser:
+    image: ghcr.io/finsys/hawser:latest
+    container_name: hawser
+    restart: unless-stopped
+    privileged: true # can't connect to podman socket without this...
+    ports:
+      - 2376:2376
+    env_file:
+      - ./hawser/.env
+      # Required fields in './hawser/.env':
+      # TOKEN    = Hawser token used for authentication.
+    environment:
+      AGENT_NAME: Homelab Outpost
+      TLS_CERT: /certs/hawser/hawser.crt
+      TLS_KEY: /certs/hawser/hawser.key
+    volumes:
+      - /run/podman/podman.sock:/var/run/docker.sock:Z
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - ./hawser/certificates:/certs/hawser:ro,Z
+
 volumes:
   caddy_data:
     name: caddy_data
