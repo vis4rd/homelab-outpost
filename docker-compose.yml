@@ -25,13 +25,20 @@ services:
       - net.ipv4.ip_forward=1
 
   caddy:
-    image: caddy:latest
+    build:
+      dockerfile: ./caddy/Dockerfile
+      context: ./
     container_name: caddy
     restart: unless-stopped
     env_file:
       - ./caddy/.env
       # Required fields in './caddy/.env':
       # DOMAIN_NAME = The domain name used for this VPS.
+      # REDIRECT_DOMAIN_NAME = The domain name which wil be redirected to DOMAIN_NAME.
+      #                        Useful if TLS challenge cannot be done easily for REDIRECT_DOMAIN_NAME.
+      # OVH_APPLICATION_KEY    = Generated in OVH dashboard, required for TLS challenge (HTTPS).
+      # OVH_APPLICATION_SECRET = Generated in OVH dashboard, required for TLS challenge (HTTPS).
+      # OVH_CONSUMER_KEY       = Generated in OVH dashboard, required for TLS challenge (HTTPS).
     volumes:
       - ./caddy/config:/etc/caddy:Z
       - ./caddy/logs:/logs:Z

@@ -8,13 +8,45 @@
     }
 }
 
-tv.{$DOMAIN_NAME} {
+(ovh_dns_challenge) {
+    tls {
+        dns ovh {
+            endpoint ovh-ca
+            application_key {env.OVH_APPLICATION_KEY}
+            application_secret {env.OVH_APPLICATION_SECRET}
+            consumer_key {env.OVH_CONSUMER_KEY}
+        }
+    }
+}
+
+yourspotify.{$REDIRECT_DOMAIN_NAME} {
+    tls internal
+    redir https://yourspotify.{$DOMAIN_NAME}
+}
+
+# tv.{$DOMAIN_NAME} {
+#     reverse_proxy 10.13.13.2:8080 {
+#         header_up X-Target-Service tv
+#     }
+
+#     log {
+#         output file /logs/tv.log {
+# 			roll_size 10MiB
+# 		}
+#         format console
+#         level DEBUG
+#     }
+# }
+
+yourspotify.{$DOMAIN_NAME} {
+    import ovh_dns_challenge
+
     reverse_proxy 10.13.13.2:8080 {
-        header_up X-Target-Service tv
+        header_up X-Target-Service spotify
     }
 
     log {
-        output file /logs/tv.log {
+        output file /logs/spotify.log {
 			roll_size 10MiB
 		}
         format console
