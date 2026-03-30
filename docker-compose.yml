@@ -23,6 +23,10 @@ services:
       - SYS_MODULE
     sysctls:
       - net.ipv4.ip_forward=1
+    networks:
+      wireguard_net:
+    extra_hosts:
+      - "auth.home.arpa:127.0.0.1" # for authentik
 
   caddy:
     build:
@@ -39,6 +43,7 @@ services:
       # OVH_APPLICATION_KEY    = Generated in OVH dashboard, required for TLS challenge (HTTPS).
       # OVH_APPLICATION_SECRET = Generated in OVH dashboard, required for TLS challenge (HTTPS).
       # OVH_CONSUMER_KEY       = Generated in OVH dashboard, required for TLS challenge (HTTPS).
+      # AUTHENTIK_OUTPOST_UPSTREAM = Authentik outpost upstream for forward_auth, e.g. 127.0.0.1:9000.
     volumes:
       - ./caddy/config:/etc/caddy:Z
       - ./caddy/logs:/logs:Z
@@ -66,6 +71,30 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - ./hawser/certificates:/certs/hawser:ro,Z
+
+  authentik:
+    image: ghcr.io/goauthentik/proxy:2026.2
+    container_name: authentik
+    restart: unless-stopped
+    env_file:
+      - ./authentik/.env
+      # Required fields in './authentik/.env':
+      # AUTHENTIK_TOKEN = Hawser token used for authentication.
+    environment:
+        AUTHENTIK_HOST: http://auth.home.arpa
+        AUTHENTIK_INSECURE: "false"
+        # Optional setting to be used when `authentik_host` for internal communication doesn't match the public URL.
+        AUTHENTIK_HOST_BROWSER: https://auth.visard.me
+    network_mode: "service:wireguard"
+    depends_on:
+      - wireguard
+    # TODO: almost works
+    # 1. create github token for oauth2 provider
+    # 2, test auth flow from within authentik UI
+    #
+    # 3. setup some simpler service to test, not fucking yourspotify
+    # 4. figure out why specific service forward auth does not use the same flow and
+    #    "the request failed and the interceptors did not return an alternative response" errors appear
 
 volumes:
   caddy_data:

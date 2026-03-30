@@ -1,11 +1,18 @@
-{
-    log {
-        output file /logs/latest.log {
-            roll_size 10MiB
+(logging) {
+	log {
+        output file /logs/{args[0]}.log {
+			roll_size 10MiB
+		}
+        format console {
+            level_format upper
+            time_format wall_milli
         }
-        format console
-        level INFO
+        level DEBUG
     }
+}
+
+{
+    import logging latest
 }
 
 (ovh_dns_challenge) {
@@ -19,9 +26,47 @@
     }
 }
 
+(authentik_forward_auth) {
+    route {
+        reverse_proxy /outpost.goauthentik.io/* 127.0.0.1:9000
+
+        forward_auth 127.0.0.1:9000 {
+            uri /outpost.goauthentik.io/auth/caddy
+            copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Entitlements X-Authentik-Email X-Authentik-Name X-Authentik-Uid X-Authentik-Jwt X-Authentik-Meta-Jwks X-Authentik-Meta-Outpost X-Authentik-Meta-Provider X-Authentik-Meta-App X-Authentik-Meta-Version
+        }
+    }
+}
+
+auth.{$DOMAIN_NAME} {
+    import ovh_dns_challenge
+
+    reverse_proxy 10.13.13.2:8080 {
+        header_up X-Target-Service auth
+    }
+}
+
+http://auth.home.arpa {
+    import logging authentik_wg
+
+    reverse_proxy 10.13.13.2:8080 {
+        header_up X-Target-Service auth
+    }
+}
+
 yourspotify.{$REDIRECT_DOMAIN_NAME} {
     tls internal
     redir https://yourspotify.{$DOMAIN_NAME}
+}
+
+yourspotify.{$DOMAIN_NAME} {
+    import ovh_dns_challenge
+    import authentik_forward_auth
+
+    reverse_proxy 10.13.13.2:8080 {
+        header_up X-Target-Service spotify
+    }
+
+    import logging spotify
 }
 
 # tv.{$DOMAIN_NAME} {
@@ -37,19 +82,3 @@ yourspotify.{$REDIRECT_DOMAIN_NAME} {
 #         level DEBUG
 #     }
 # }
-
-yourspotify.{$DOMAIN_NAME} {
-    import ovh_dns_challenge
-
-    reverse_proxy 10.13.13.2:8080 {
-        header_up X-Target-Service spotify
-    }
-
-    log {
-        output file /logs/spotify.log {
-			roll_size 10MiB
-		}
-        format console
-        level DEBUG
-    }
-}
