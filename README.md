@@ -1,26 +1,21 @@
-# Homelab Outpost™️
+# Homelab Outpost
 
 Configuration files used to self-host my own services on an external VPS.
 
-## Wireguard
+## Architecture
 
-Required modprobe for Wireguard. Check if already active:
+This VPS acts as an external "outpost" that provides secure internet access to internal homelab services:
 
-```sh
-lsmod | grep wireguard
+```
+Internet → VPS (Outpost) → WireGuard tunnel → Homelab Center (10.13.13.2)
 ```
 
-If nothing is returned, enable with:
-
-```sh
-sudo modprobe wireguard
-```
+**Services:**
+- **[WireGuard](./wireguard/)** - VPN tunnel to Homelab Center
+- **[Caddy](./caddy/)** - Reverse proxy with automatic HTTPS (OVH DNS challenge)
+- **[Authentik](./authentik/)** - Forward auth proxy outpost for service protection
+- **[Hawser](./hawser/)** - Remote container management agent for Dockhand
 
 ## Homelab Center
 
-**Homelab Center** is a locally self-hosted set of services that cooperate with the Outpost
-instance. Its configuration can be found in [this repository](https://github.com/vis4rd/homelab).
-
----
-
-<sub>Homelab Outpost is not actually a trademarked name. It's just my silly naming convention.</sub>
+**Homelab Center** is the locally self-hosted instance that this outpost connects to. Its configuration can be found in [this repository](https://github.com/vis4rd/homelab).
