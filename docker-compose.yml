@@ -1,56 +1,4 @@
 services:
-  wireguard:
-    image: linuxserver/wireguard
-    container_name: wireguard
-    restart: unless-stopped
-    ports:
-      - 51820:51820/udp
-      - 443:443 # for caddy
-      - 80:80   # for caddy
-    environment:
-      PUID: 1000
-      PGID: 1000
-      TZ: Europe/Warsaw
-      PEERS: homelab
-      ALLOWEDIPS: 10.13.13.1,10.13.13.2
-      PERSISTENTKEEPALIVE_PEERS: homelab
-      # SERVER_ALLOWEDIPS_PEER_homelab:
-    volumes:
-      - ./wireguard/config:/config:Z
-      - /lib/modules:/lib/modules
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv4.ip_forward=1
-    networks:
-      wireguard_net:
-    extra_hosts:
-      - "auth.home.arpa:127.0.0.1" # for authentik
-
-  caddy:
-    build:
-      dockerfile: ./caddy/Dockerfile
-      context: ./
-    container_name: caddy
-    restart: unless-stopped
-    env_file:
-      - ./caddy/.env
-      # Required fields in './caddy/.env':
-      # DOMAIN_NAME = The domain name used for this VPS.
-      # REDIRECT_DOMAIN_NAME = The domain name which wil be redirected to DOMAIN_NAME.
-      #                        Useful if TLS challenge cannot be done easily for REDIRECT_DOMAIN_NAME.
-      # OVH_APPLICATION_KEY    = Generated in OVH dashboard, required for TLS challenge (HTTPS).
-      # OVH_APPLICATION_SECRET = Generated in OVH dashboard, required for TLS challenge (HTTPS).
-      # OVH_CONSUMER_KEY       = Generated in OVH dashboard, required for TLS challenge (HTTPS).
-      # AUTHENTIK_OUTPOST_UPSTREAM = Authentik outpost upstream for forward_auth, e.g. 127.0.0.1:9000.
-    volumes:
-      - ./caddy/config:/etc/caddy:Z
-      - ./caddy/logs:/logs:Z
-      - caddy_data:/data
-      - caddy_config:/config
-    network_mode: "service:wireguard"
-
   hawser:
     image: ghcr.io/finsys/hawser:latest
     container_name: hawser
@@ -72,36 +20,67 @@ services:
       - /sys:/host/sys:ro
       - ./hawser/certificates:/certs/hawser:ro,Z
 
-  authentik:
-    image: ghcr.io/goauthentik/proxy:2026.2
-    container_name: authentik
+  pangolin:
+    image: docker.io/fosrl/pangolin:ee-latest # https://github.com/fosrl/pangolin/releases
+    container_name: pangolin
     restart: unless-stopped
-    env_file:
-      - ./authentik/.env
-      # Required fields in './authentik/.env':
-      # AUTHENTIK_TOKEN = Hawser token used for authentication.
-    environment:
-        AUTHENTIK_HOST: http://auth.home.arpa
-        AUTHENTIK_INSECURE: "false"
-        # Optional setting to be used when `authentik_host` for internal communication doesn't match the public URL.
-        AUTHENTIK_HOST_BROWSER: https://auth.visard.me
-    network_mode: "service:wireguard"
-    depends_on:
-      - wireguard
-    # TODO: almost works
-    # 1. create github token for oauth2 provider
-    # 2, test auth flow from within authentik UI
-    #
-    # 3. setup some simpler service to test, not fucking yourspotify
-    # 4. figure out why specific service forward auth does not use the same flow and
-    #    "the request failed and the interceptors did not return an alternative response" errors appear
+    volumes:
+      - ./pangolin/config:/app/config:Z
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/"]
+      interval: "10s"
+      timeout: "10s"
+      retries: 15
+    networks:
+      - pangolin_net
 
-volumes:
-  caddy_data:
-    name: caddy_data
-  caddy_config:
-    name: caddy_config
+  gerbil:
+    image: docker.io/fosrl/gerbil:latest # https://github.com/fosrl/gerbil/releases
+    container_name: gerbil
+    restart: unless-stopped
+    depends_on:
+      pangolin:
+        condition: service_healthy
+    command:
+      - --reachableAt=http://gerbil:3004
+      - --generateAndSaveKeyTo=/var/config/key
+      - --remoteConfig=http://pangolin:3001/api/v1/
+    volumes:
+      - ./pangolin/config/:/var/config:Z
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - 21820:21820/udp
+      - 51820:51820/udp
+      - 3004:3004/tcp
+      - 80:80
+      - 443:443
+    networks:
+      - pangolin_net
+
+  traefik:
+    image: docker.io/traefik:v3.6
+    container_name: traefik
+    restart: unless-stopped
+    depends_on:
+      pangolin:
+        condition: service_healthy
+    command:
+      - --configFile=/etc/traefik/traefik_config.yml
+    env_file:
+      - ./pangolin/.env
+      # Required fields in './pangolin/.env':
+      # OVH_ENDPOINT           = OVH credentials for DNS challenge.
+      # OVH_APPLICATION_KEY    = OVH credentials for DNS challenge.
+      # OVH_APPLICATION_SECRET = OVH credentials for DNS challenge.
+      # OVH_CONSUMER_KEY       = OVH credentials for DNS challenge.
+    volumes:
+      - ./pangolin/config/traefik:/etc/traefik:Z,ro
+      - ./pangolin/config/letsencrypt:/letsencrypt:Z
+      - ./pangolin/config/traefik/logs:/var/log/traefik:Z
+    network_mode: service:gerbil
 
 networks:
-  wireguard_net:
-    name: wireguard_net
+  pangolin_net:
+    name: pangolin_net

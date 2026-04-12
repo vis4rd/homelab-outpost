@@ -7,13 +7,12 @@ Configuration files used to self-host my own services on an external VPS.
 This VPS acts as an external "outpost" that provides secure internet access to internal homelab services:
 
 ```
-Internet → VPS (Outpost) → WireGuard tunnel → Homelab Center (10.13.13.2)
+Internet → VPS (Outpost) → Pangolin → Homelab Center
 ```
 
 **Services:**
-- **[WireGuard](./wireguard/)** - VPN tunnel to Homelab Center
-- **[Caddy](./caddy/)** - Reverse proxy with automatic HTTPS (OVH DNS challenge)
-- **[Authentik](./authentik/)** - Forward auth proxy outpost for service protection
+
+- **[Pangolin](./pangolin/)** - Identity-aware VPN and proxy
 - **[Hawser](./hawser/)** - Remote container management agent for Dockhand
 
 ## Homelab Center
