@@ -24,8 +24,10 @@ services:
     image: docker.io/fosrl/pangolin:ee-latest # https://github.com/fosrl/pangolin/releases
     container_name: pangolin
     restart: unless-stopped
+    privileged: true
     volumes:
       - ./pangolin/config:/app/config:Z
+      - ./pangolin/geo-db:/app/geo-db:Z
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/"]
       interval: "10s"

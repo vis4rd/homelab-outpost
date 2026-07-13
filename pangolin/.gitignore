@@ -1,2 +1,5 @@
 # Pangolin generated config and keys
 config/
+
+# Geo database
+geo-db/*.mmdb
