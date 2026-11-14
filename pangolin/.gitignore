@@ -3,3 +3,6 @@ config/
 
 # Geo database
 geo-db/*.mmdb
+
+# ASN database
+asn-db/*.mmdb

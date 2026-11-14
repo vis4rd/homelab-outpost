@@ -28,6 +28,7 @@ services:
     volumes:
       - ./pangolin/config:/app/config:Z
       - ./pangolin/geo-db:/app/geo-db:Z
+      - ./pangolin/asn-db:/app/asn-db:Z
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/"]
       interval: "10s"
